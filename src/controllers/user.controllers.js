@@ -15,6 +15,9 @@ const registerUser = asyncHandler(async (req, res) => {
   // remove the password and refrsh token from the response
   // return the response ...
 
+  if (!req.body || !req.body.fullName) {
+    throw new ApiError(400, "All fields are required");
+  }
   const { fullName, username, email, password } = req.body; // taking the data from the postman as a frontend..
   //  console.log(username);
   const regEx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -34,7 +37,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   // check if the user is present or not
 
-  const userExisted = User.findOne({
+  const userExisted = await User.findOne({
     $or: [{ username }, { email }], // this is an or operator which will check if the username or email is present in the database , commonly called as filterQuery in mogoDb and this does not work in plain js .
   });
 
@@ -44,7 +47,22 @@ const registerUser = asyncHandler(async (req, res) => {
   // now for the avatar and coverImages
 
   const avatarLocalPath = req.files?.avatar[0]?.path; // this is because i have used the multer middleware and this is the path where the image is stored in the local storage
-  const coverImageLocalPath = req.files?.coverImage[0]?.path;
+  // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+  // this chaining operator provides the unexpected and unreadable error so better is to check the existance of the file by traditional if else method
+
+  let coverImageLocalPath;
+
+  if (
+    req.files &&
+    Array.isArray(req.files.coverImage) &&
+    req.files.coverImage.length > 0
+  ) {
+    coverImageLocalPath = req.files.coverImage[0].path;
+  }
+
+  // this will avoid unnecessary error in the code if the coverImage is not immediately checked like the avatar so better use this syntax if you dont want to just immediately check it ....
+  // as this parameter was set to required : false then too it was throwing error in the psotman because of that chaining syntax so better to check it like this.
+  // after this no error will be showned and that will execute properly even if the coverImage is not uploaded .
 
   // now check if the avatar is given or not
 
@@ -77,10 +95,10 @@ const registerUser = asyncHandler(async (req, res) => {
       "Something went wrong while registering the User..."
     );
 
-    // send the response to the client about the registeration
-    return res.status(201).json(
-        new ApiResponse(201,userCreated,"User registered Successfully")
-    )
+  // send the response to the client about the registeration
+  return res
+    .status(201)
+    .json(new ApiResponse(201, userCreated, "User registered Successfully"));
 });
 
 export { registerUser };
