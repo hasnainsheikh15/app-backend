@@ -6,7 +6,7 @@ const userSchema = new Schema(
   {
     username: {
       type: String,
-      requuired: true,
+      required: true,
       unique: true,
       lowercase: true,
       trim: true,
@@ -15,7 +15,7 @@ const userSchema = new Schema(
     email: {
       type: String,
       required: true,
-      lowercae: true,
+      lowercase: true,
       trim: true,
     },
     fullName: {
@@ -50,7 +50,7 @@ const userSchema = new Schema(
   { timestamps: true }
 );
 
-userSchema.pre("save", async function (next) {
+userSchema.pre("save", async function (next) { // because of this the validateBeforeSave is implemented in the login controllers 
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();
@@ -60,27 +60,31 @@ userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
-userSchema.methods.generateAcessToken = function () {
-  jwt.sign({
-    _id: this._id, // this all is going to come from the database ...
-    username: this.username,
-    email: this.email,
-    fullName: this.fullName,
-  }),
+userSchema.methods.generateAccessToken = function () {
+  return (
+    jwt.sign({
+      _id: this._id, // this all is going to come from the database ...
+      username: this.username,
+      email: this.email,
+      fullName: this.fullName,
+    }),
     process.env.ACCESS_TOKEN_SECRET,
     {
       expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
-    };
+    }
+  );
 };
 
-userSchema.methods.generaterrefreshToken = function () {
-  jwt.sign({
-    _id: this._id,
-  });
-  process.env.REFRESH_TOKEN_SECRET,
-  {
-    expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
-  }
-
+userSchema.methods.generateRefreshToken = function () {
+  return (
+    jwt.sign({
+      _id: this._id,
+    }),
+    process.env.REFRESH_TOKEN_SECRET,
+    {
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+    }
+  );
 };
 export const User = mongoose.model("User", userSchema);
+
