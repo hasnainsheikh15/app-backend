@@ -105,7 +105,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const generateAccessAndRefreshToken = async (userId) => {
   try {
-    const user = await user.findById(userId);
+    const user = await User.findById(userId);
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
 
@@ -113,6 +113,8 @@ const generateAccessAndRefreshToken = async (userId) => {
     await user.save({ validateBeforeSave: false }); // this is done to avoid the validation of the user schema as we are not updating the password and we don't want to check for the password again and again so this is done to avoid that validation
     return { accessToken, refreshToken };
   } catch (error) {
+    console.error("Token Generation Error:", error); 
+    
     throw new ApiError(500, "Something went wrong while generating the tokens");
   }
 };
@@ -126,7 +128,7 @@ const generateAccessAndRefreshToken = async (userId) => {
 const loginUser = asyncHandler(async (req, res) => {
   const { email, username, password } = req.body;
 
-  if (!username || !password) {
+  if (!(username || password)) {
     throw new ApiError(400, "Username and email is required");
   }
   const user = await User.findOne({
@@ -175,7 +177,7 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
-  await User.findById(
+  await User.findByIdAndUpdate(
     req.user._id,
     { $set: { refreshToken: undefined } },
     { new: true }
