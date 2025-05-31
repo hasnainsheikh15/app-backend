@@ -1,3 +1,6 @@
+![Under Development](https://img.shields.io/badge/status-under_development-yellow)
+
+
 # 📺 VideoTube Backend
 
 A Node.js + Express.js backend API for a video sharing platform. This project handles user authentication, video uploads, subscriptions, and more. Built with MongoDB, Cloudinary, JWT, and secure cookie/token management.
