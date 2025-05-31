@@ -1,5 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
-import fs from "fs";
+import fs, { existsSync } from "fs";
 
 // Configuration
 cloudinary.config({
@@ -18,10 +18,14 @@ const uploadOnCloudinary = async (localFilePath) => {
     //   "File has been successfully uploaded to cloudiniary : ",
     //   response.url
     // );
+    if(existsSync(localFilePath)) {
     fs.unlinkSync(localFilePath);
+    }
     return response;
   } catch (error) {
-    fs.unlinkSync(localFilePath);
+    if (existsSync(localFilePath)) {
+      fs.unlinkSync(localFilePath);
+    }
     return null;
   }
 };

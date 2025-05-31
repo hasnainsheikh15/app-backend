@@ -7,14 +7,14 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
 const registerUser = asyncHandler(async (req, res) => {
-  // get user detauils from the frontend
+  // get user details from the frontend
   // validate the data received in the frontend
-  // check if the user already exixts or not
+  // check if the user already exists or not
   // if not ? create the user : say already existed
   // if not then take the username password email and fullName from the user
-  // now take the avatar and coverImage and uppload it to the cloudinary
+  // now take the avatar and coverImage and upload it to the cloudinary
   // create the user object and save it to the database as it is nosql database
-  // remove the password and refrsh token from the response
+  // remove the password and refresh token from the response
   // return the response ...
 
   if (!req.body || !req.body.fullName) {
@@ -25,7 +25,7 @@ const registerUser = asyncHandler(async (req, res) => {
   const regEx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const emailToValidate = email.trim().toLowerCase();
   if (
-    // this is basically an js inbuild function which checks if the fields in the array is present and if it is present and then it will trim it and if the output after trim is empty then it will return true and if the fields are present then it will return false.And this function will traverse on all the fiels in the array and work like an operator
+    // this is basically an js inBuild function which checks if the fields in the array is present and if it is present and then it will trim it and if the output after trim is empty then it will return true and if the fields are present then it will return false.And this function will traverse on all the fiels in the array and work like an operator
     [fullName, username, email, password].some(
       (fields) => fields?.trim() === ""
     )
@@ -248,7 +248,11 @@ const RefreshAccessToken = asyncHandler(async (req, res) => {
 const changePassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;
 
-  const user = await User.findById(req.user?._id); // because we have the injected middleware jwtAuth so it will eventually tell user is legitimate or not
+  const user = await User.findById(req.user?._id);
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  } // because we have the injected middleware jwtAuth so it will eventually tell user is legitimate or not
 
   const isPasswordCorrectOrNot = await user.isPasswordCorrect(oldPassword);
 
@@ -418,14 +422,14 @@ const getUSerHistory = asyncHandler(async (req, res) => {
   const user = await User.aggregate([
     {
       $match: {
-        _id: new mongoose.Types.ObjectId(req.user?._id), // logged in or not 
+        _id: new mongoose.Types.ObjectId(req.user?._id),
       },
     },
     {
       $lookup: {
         from: "videos",
         localField: "watchHistory",
-        foreignField: "_id",         // this pipeline add's the watchHistoryVideos field to the user object
+        foreignField: "_id",
         as: "watchHistoryVideos",
         pipeline: [
           {
@@ -435,15 +439,6 @@ const getUSerHistory = asyncHandler(async (req, res) => {
               foreignField: "_id",
               as: "owner",
             },
-            pipeline: [
-              {
-                $project: {
-                  username: 1,
-                  fullName: 1,
-                  avatar: 1,
-                },
-              },
-            ],
           },
           {
             $addFields: {
@@ -452,14 +447,28 @@ const getUSerHistory = asyncHandler(async (req, res) => {
               },
             },
           },
+          {
+            $project: {
+              "owner.username": 1,
+              "owner.fullName": 1,
+              "owner.avatar": 1,
+              // include other video fields if needed here
+            },
+          },
         ],
       },
     },
   ]);
 
-  return res.status(200).json(
-    new ApiResponse(200,user[0].watchHistory,"User watch history fetched successfully")
-  )
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        user[0]?.watchHistoryVideos || [],
+        "User watch history fetched successfully"
+      )
+    );
 });
 
 export {
