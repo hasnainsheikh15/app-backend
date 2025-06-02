@@ -79,15 +79,13 @@ const publishVideo = asyncHandler(async (req, res) => {
   if (!title || !description) {
     throw new ApiError(400, "title and description are required");
   }
-//   console.log(req.files);
+  //   console.log(req.files);
   if (!req.files || !req.files?.video?.[0] || !req.files?.thumbnail?.[0]) {
     throw new ApiError(
       400,
       "Video file, thumbnail and video file are required"
     );
   }
-
-  
 
   const videoLocalPath = req.files?.video[0]?.path;
 
@@ -102,21 +100,133 @@ const publishVideo = asyncHandler(async (req, res) => {
   }
 
   const video = await Video.create({
-    title,description,
+    title,
+    description,
     videoFile: videoFile?.url,
     thumbnail: thumbnailFile?.url,
-    owner : req.user._id,
-    duration : videoFile?.duration
-  })
+    owner: req.user._id,
+    duration: videoFile?.duration,
+  });
 
-  if(!video) {
+  if (!video) {
     throw new ApiError(500, "Failed to create video");
   }
 
-  return res.status(201).json(
-    new ApiResponse(201, video, "Video published successfully")
-  )
+  return res
+    .status(201)
+    .json(new ApiResponse(201, video, "Video published successfully"));
 });
 
+const getVideoById = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
 
-export { getAllVideos , publishVideo };
+  if (!videoId || !mongoose.isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid video ID");
+  }
+
+  const video = await Video.findById(videoId).populate(
+    "owner",
+    "fullName avatar title"
+  );
+  if (!video) {
+    throw new ApiError(404, "Video not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, video, "Video Fetched Successfully"));
+});
+
+const updateVideo = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+  const { title, description, thumbnail } = req.body;
+
+  if (!videoId || !mongoose.isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid video ID");
+  }
+
+  if (!title || !description) {
+    throw new ApiError(400, "Title and  description are required");
+  }
+
+  const thumbnailLocalPath = req.file?.path; // this is single file so it wont have array to directly we will get the path
+  console.log(thumbnailLocalPath);
+  if (!thumbnailLocalPath) {
+    throw new ApiError(400, "Thumbnail is required");
+  }
+
+  const thumbnailFile = await uploadOnCloudinary(thumbnailLocalPath);
+
+  if (!thumbnailFile) {
+    throw new ApiError(500, "Failed to upload thumbnail on cloudinary");
+  }
+
+  const video = await Video.findByIdAndUpdate(
+    videoId,
+    {
+      $set: {
+        title,
+        description,
+        thumbnail: thumbnailFile?.url,
+      },
+    },
+    { new: true }
+  );
+
+  if (!video) {
+    throw new ApiError(
+      404,
+      "Video not found or problem in updating the details"
+    );
+  }
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, video, "Video  details updated successfully"));
+});
+
+const deleteVideo = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+  if (!videoId || !mongoose.isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid video ID");
+  }
+  const video = await Video.findByIdAndDelete(videoId);
+  if (!video) {
+    throw new ApiError(404, "Video not found");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "Video deleted successfully"));
+});
+
+const togglePublishStatus = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+  if (!videoId || !mongoose.isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid video ID");
+  }
+
+  const video = await Video.findByIdAndUpdate(videoId);
+
+  if (!video) {
+    throw new ApiError(404, "Video not found");
+  }
+
+  video.isPublished = !video.isPublished; // toggle the publish status
+
+  await video.save();
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, video, "Video publish status toggled successfully")
+    );
+});
+
+export {
+  getAllVideos,
+  publishVideo,
+  getVideoById,
+  updateVideo,
+  deleteVideo,
+  togglePublishStatus,
+};
