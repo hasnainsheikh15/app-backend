@@ -21,8 +21,10 @@ app.use(cookieParser());
 // importing the routes 
 
 import router from "./routes/user.routes.js";
+import videoRouter from "./routes/video.routes.js";
 
 app.use("/api/v1/users",router);
+app.use("/api/v1/videos",videoRouter)
 
 // the actual url that becomes after the router is 
 // http://localhost:8000/api/v1/users/register and then the method is post
